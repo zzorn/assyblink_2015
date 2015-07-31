@@ -5,17 +5,13 @@
 
 #include "FastLED.h"
 
-
-
 // Pins
 #define PIN_LEDSTRIP 2
 
 // Array with current led colors
 #define LED_COUNT 50
 CRGB ledColors[LED_COUNT];
-
-CRGB currentColor;
-CRGB targetColor;
+CRGB ledColorsBackBuffer[LED_COUNT];
 
 CRGB randomColor() {
    CRGB c;
@@ -24,12 +20,6 @@ CRGB randomColor() {
    c.b = random8();   
    return c;
 }
-
-
-
-
-
-
 
 /**
  * t = from 0 (returns a) to 1024 (returns b).
@@ -95,49 +85,6 @@ CRGB addColor(CRGB from, CRGB to, float amount) {
   return CRGB((int)r, (int)g, (int)b);  
 }
 
-void updateSolidColorMode(long deltaTime_ms, CRGB color) {
-
-    // Set to target  
-    int mixAmount = 200;
-    for (int i = 0; i < LED_COUNT; i++) {
-        ledColors[i] = color;
-    }
-
-}
-
-
-
-long waveSpeed = 16;
-long wavePos = 0;
-void updateWaveMode(long deltaTime_ms) {
-    // Calculate source colors
-    wavePos += deltaTime_ms * waveSpeed;
-    if (wavePos > 32767) wavePos -= 32767;
-    int pos = sin16(wavePos * waveSpeed) / (65535 / 512) + 512;
-    CRGB sourceColor1 = mixColor(targetColor, CRGB::Black, pos);
-    CRGB sourceColor2 = mixColor(targetColor, CRGB::Black, 1024 - pos);
-  
-    // Bleed color down the line  
-    int bleedAmount = 300;
-    for (int i = LED_COUNT - 1; i > 0; i--) {
-        ledColors[i] += mixColor(ledColors[i], ledColors[i - 1], bleedAmount);
-    }
-    
-    // Bleed current color to first ones
-    ledColors[0] = mixColor(ledColors[0], sourceColor1, bleedAmount);
-
-    // Dampen colors
-    for (int i = 0; i < LED_COUNT; i++) {
-        ledColors[i].fadeToBlackBy(1);
-    }
-}
-
-
-long sparkleIntervall_ms = 200;
-long timeToNextSparkle = 1;
-CRGB GRADIENT_FIRE_COLORS[] = {CRGB(255, 240, 150), CRGB(220, 180, 0), CRGB(200, 0, 0), CRGB(30, 0, 50), CRGB(0, 0, 60), CRGB(0, 0, 0)};
-long GRADIENT_FIRE_DURATIONS[] = {500, 1000, 500, 2000, 100, 3000};
-
 
 // --------------------------------------
 //    PARTICLES
@@ -157,14 +104,16 @@ void updateParticles() {
     particleVelocity[i] += particleForce;
     particleVelocity[i] += particleThrust[i];
     particleVelocity[i] *= particleFriction;
-    particlePosition[i] += particleVelocity[i];    
+    particlePosition[i] += particleVelocity[i];   
+   
+    // Wrap pos
+    if ( particlePosition[i] < 0) particlePosition[i] = LED_COUNT-1;
+    else if ( particlePosition[i] >= LED_COUNT) particlePosition[i] = 0;
   }
-  
- // drawParticles();
   
 }
 
-float particleStrengths = 0.5;
+float particleStrengths = 0.25;
 
 void drawParticles() {
   for (int i = 0; i < particleCount; i++) {
@@ -198,6 +147,10 @@ void addParticle(CRGB color, float pos, float velocity, float thrust) {
     
     particleCount++;
   }  
+}
+
+float randomFloat(float range) {
+  return range * (1.0*random(10000)) / 10000.0;
 }
 
 float randomGauss(float scale) {
@@ -299,30 +252,6 @@ void updateParticleColorTune() {
 // --------------------------------------
 
 
-long pulse = 0;
-CRGB ledPulseColor  = randomColor();
-void pulseLeds(long deltaTime_ms) {
-
-  pulse += deltaTime_ms;
-  
-  if (pulse > 1000) {
-    pulse = 0;
-    ledPulseColor = randomColor();
-  }
-  
-  // Bleed color down the line  
-  
-    int bleedAmount = 300;
-    for (int i = LED_COUNT - 1; i > 0; i--) {
-        ledColors[i] += mixColor(ledColors[i], ledColors[i - 1], bleedAmount);
-    }
-    
-    // Bleed current color to first ones
-    ledColors[0] = mixColor(ledColors[0], ledPulseColor, bleedAmount);
-
-    // Dampen colors
-    fadeColorsToBlack(1);
-}
 
 
 float blackCountdownR = 0.0;
@@ -362,58 +291,13 @@ void smoothColors(int amount) {
       if (prev < 0) prev = LED_COUNT-1;
       if (next >= LED_COUNT) next = 0;
       CRGB mix = mixColor(ledColors[prev], ledColors[next], 512);
-      //ledColorsBackbuffer[i] = mixColor(ledColors[i], mix, amount);
+      ledColorsBackBuffer[i] = mixColor(ledColors[i], mix, amount);
     }
     for (int i = 0; i < LED_COUNT; i++) {
-      //ledColors[i] = ledColorsBackbuffer[i];
+      ledColors[i] = ledColorsBackBuffer[i];
     }
 }
 
-
-
-long ledCoolDown_ms = 0;
-long scrollSpeed_ms_per_step = 10;
-void updateLeds(long deltaTime_ms) {
-  // Check if it is time to update the leds yet 
-  ledCoolDown_ms -= deltaTime_ms;
-  if (ledCoolDown_ms <= 0) { 
-    ledCoolDown_ms += scrollSpeed_ms_per_step;
-
-    pulseLeds(deltaTime_ms);
-
-    // Show the updated led colors
-    FastLED.show();
-
-  }  
-}
-
-
-
-
-/**
- * Returns the number of milliseconds since the last call to this method.
- * Also updates the currentTime_ms variable to be the number of milliseconds since the start of the program, or the last timer wraparound (happens every 50 days or so).
- */
-long currentTime_ms =millis();
-long calculateDeltaTime() {
-  unsigned long now = millis();
-  long deltaTime_ms;
-
-  // Handle startup and millis() wraparound (happends every 50 days or so)
-  if (currentTime_ms == 0 || now < currentTime_ms) {
-    deltaTime_ms = 0;
-  } 
-  else {
-    // Calculate number of milliseconds since the last call to this method
-    deltaTime_ms = now - currentTime_ms;
-  }
-  
-  // Update current time;
-  currentTime_ms = now;
-  
-  // Return delta
-  return deltaTime_ms;
-}
 
 
 int clampToRange(int value, int minValue, int maxValue) {
@@ -425,7 +309,7 @@ int clampToRange(int value, int minValue, int maxValue) {
 void createNewWave() {
       // CRGB color, int numparticles, boolean randomizeStartPos, boolean allStartFromSamePos, float colorTune, float velocityScale, float forceScale
       createParticleWave(randomColor(), random(2)*random(3)+1, randomBoolean(50), randomBoolean(10), random(12)+random(12), randomGaussPlusMinus(0.008), randomGaussPlusMinus(0.001));  
-      particleStrengths = randomGauss(0.7);
+      particleStrengths = randomFloat(1.0) * randomFloat(1.0);
 }
 
 void setup()  {
@@ -436,9 +320,6 @@ void setup()  {
     ledColors[i] = CRGB(0,0,0);
   }
 
-  targetColor = CRGB::Red;
-  currentColor = randomColor();   
-  
   FastLED.addLeds<NEOPIXEL, PIN_LEDSTRIP>(ledColors, LED_COUNT);
 
   // CRGB color, int numparticles, boolean randomizeStartPos, boolean allStartFromSamePos, float colorTune, float velocityScale, float forceScale
@@ -474,19 +355,6 @@ void loop() {
     retest = true;
   }
   
-  // Determine time step
-  long deltaTime_ms = calculateDeltaTime();
-    
-  // Update subsystems
-  //updateLeds(deltaTime_ms);  
-
-/*
-    for (int i = LED_COUNT - 1; i > 0; i--) {
-        ledColors[i] = randomColor();
-    }
-*/
-
-//   pulseLeds(deltaTime_ms);
    
    // Randomly new wave
    if (retest && randomBoolean(10)) {
@@ -525,7 +393,7 @@ void loop() {
 
    fadeColorsToBlack(fadeSpeed);
    
-  updateParticleColorTune();
+   updateParticleColorTune();
    
    drawParticles();
    
@@ -534,8 +402,6 @@ void loop() {
   FastLED.show();
 
   delay(1);
-
-  // SoftwareServo::refresh();
 }
 
 
