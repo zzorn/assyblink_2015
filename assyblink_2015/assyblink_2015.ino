@@ -96,7 +96,7 @@ float particleVelocity[MAX_PARTICLES];
 float particleThrust[MAX_PARTICLES];
 CRGB particleColor[MAX_PARTICLES];
 
-float particleFriction = 0.98f;
+float particleFriction = 0.95f;
 float particleForce = 0.0001f;
 void updateParticles() {
 
@@ -369,7 +369,7 @@ void loop() {
 
    
    if (retest && randomBoolean(20)) {
-     tweakParticleThrusts(0.0005, 1);
+     tweakParticleThrusts(0.0002, 0.8);
    }
 
    
