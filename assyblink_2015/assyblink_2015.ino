@@ -24,7 +24,14 @@ CRGB randomColor() {
      // Full random
      c.r = random8();   
      c.g = random8();   
-     c.b = random8();   
+     c.b = random8();
+     
+     int lum = 0 + c.r + c.g + c.b;
+     if (lum < 60) {
+       c.r = 128;
+       c.g = 128;
+       c.b = 128;
+     }
    }
    else {
      // Cleaner colors
@@ -106,8 +113,8 @@ CRGB addColor(CRGB from, CRGB to, float amount) {
 // --------------------------------------
 //    PARTICLES
 // --------------------------------------
-#define MAX_PARTICLES 100
-int particleCount = 10;
+#define MAX_PARTICLES 90
+int particleCount = 80;
 float particlePosition[MAX_PARTICLES];
 float particleVelocity[MAX_PARTICLES];
 float particleThrust[MAX_PARTICLES];
