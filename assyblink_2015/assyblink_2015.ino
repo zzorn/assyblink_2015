@@ -13,11 +13,28 @@
 CRGB ledColors[LED_COUNT];
 CRGB ledColorsBackBuffer[LED_COUNT];
 
+boolean randomBoolean(int percentTrue) {
+  return random(100) < percentTrue;
+}
+
 CRGB randomColor() {
    CRGB c;
-   c.r = random8();   
-   c.g = random8();   
-   c.b = random8();   
+
+   if (randomBoolean(30)) {
+     // Full random
+     c.r = random8();   
+     c.g = random8();   
+     c.b = random8();   
+   }
+   else {
+     // Cleaner colors
+     boolean inclR = randomBoolean(70);
+     boolean inclG = randomBoolean(60 - (inclR ? 10 : 0));
+     boolean inclB = randomBoolean(100 - (inclR ? 10 : 0) - (inclG ? 50 : 0));
+     c.r = inclR ? 2*(random8()/2) : 0;   
+     c.g = inclG ? 2*(random8()/2) : 0;   
+     c.b = inclB ? 2*(random8()/2) : 0;   
+   }   
    return c;
 }
 
@@ -308,7 +325,7 @@ int clampToRange(int value, int minValue, int maxValue) {
 
 void createNewWave() {
       // CRGB color, int numparticles, boolean randomizeStartPos, boolean allStartFromSamePos, float colorTune, float velocityScale, float forceScale
-      createParticleWave(randomColor(), random(2)*random(3)+1, randomBoolean(50), randomBoolean(10), random(12)+random(12), randomGaussPlusMinus(0.008), randomGaussPlusMinus(0.001));  
+      createParticleWave(randomColor(), random(8)+random(4)+3, randomBoolean(50), randomBoolean(10), random(12)+random(12), randomGaussPlusMinus(0.01), randomGaussPlusMinus(0.001));  
       particleStrengths = randomFloat(1.0) * randomFloat(1.0);
 }
 
@@ -327,11 +344,8 @@ void setup()  {
 //  setParticleColorTune(0.001, 0.0, -0.001);
 
   createNewWave();
+  createNewWave();
   
-}
-
-boolean randomBoolean(int percentTrue) {
-  return random(100) < percentTrue;
 }
 
 float fadeSpeed = 0.4;
@@ -350,14 +364,14 @@ void loop() {
 
   retestCounter++;
   boolean retest = false;
-  if (retestCounter > 1000) {
+  if (retestCounter > 1500) {
     retestCounter = 0;
     retest = true;
   }
   
    
    // Randomly new wave
-   if (retest && randomBoolean(10)) {
+   if (retest && randomBoolean(7)) {
      createNewWave(); 
       randomizeFadeSpeed();
    }
