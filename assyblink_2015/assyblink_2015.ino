@@ -20,7 +20,7 @@ boolean randomBoolean(int percentTrue) {
 CRGB randomColor() {
    CRGB c;
 
-   if (randomBoolean(30)) {
+   if (randomBoolean(37)) {
      // Full random
      c.r = random8();   
      c.g = random8();   
@@ -28,9 +28,9 @@ CRGB randomColor() {
    }
    else {
      // Cleaner colors
-     boolean inclR = randomBoolean(70);
-     boolean inclG = randomBoolean(60 - (inclR ? 10 : 0));
-     boolean inclB = randomBoolean(100 - (inclR ? 10 : 0) - (inclG ? 50 : 0));
+     boolean inclR = randomBoolean(60);
+     boolean inclG = randomBoolean(45 - (inclR ? 15 : 0));
+     boolean inclB = randomBoolean(100 - (inclR ? 25 : 0) - (inclG ? 45 : 0));
      c.r = inclR ? 2*(random8()/2) : 0;   
      c.g = inclG ? 2*(random8()/2) : 0;   
      c.b = inclB ? 2*(random8()/2) : 0;   
@@ -325,7 +325,7 @@ int clampToRange(int value, int minValue, int maxValue) {
 
 void createNewWave() {
       // CRGB color, int numparticles, boolean randomizeStartPos, boolean allStartFromSamePos, float colorTune, float velocityScale, float forceScale
-      createParticleWave(randomColor(), random(8)+random(4)+3, randomBoolean(50), randomBoolean(10), random(12)+random(12), randomGaussPlusMinus(0.01), randomGaussPlusMinus(0.001));  
+      createParticleWave(randomColor(), random(8)+random(6)+3, randomBoolean(50), randomBoolean(10), random(12)+random(12), randomGaussPlusMinus(0.01), randomGaussPlusMinus(0.001));  
       particleStrengths = randomFloat(1.0) * randomFloat(1.0);
 }
 
@@ -343,7 +343,9 @@ void setup()  {
 //  createParticleWave(CRGB(70,150, 0), 3, true, true, 20, 0.01, 0.003);  
 //  setParticleColorTune(0.001, 0.0, -0.001);
 
-  createNewWave();
+  // Roll some random numbers
+  for (int i = 0; i < 1000; i++) random();
+
   createNewWave();
   
 }
